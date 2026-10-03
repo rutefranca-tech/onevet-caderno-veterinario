@@ -38,7 +38,13 @@ async function editor(t){
   document.querySelector("#x").onclick=close;
   const area=document.querySelector("#area"),theme=document.querySelector("#theme");
   function fillThemes(){const aid=area.value;theme.innerHTML='<option value="">Sem tema</option>'+themes.filter(x=>x.area_id===aid).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join("")+(aid&&aid!=="__new"?'<option value="__new">＋ Novo tema…</option>':"");theme.disabled=!aid||aid==="__new";document.querySelector("#newThemeBox").innerHTML=""}
-  area.onchange=()=>{document.querySelector("#newAreaBox").innerHTML=area.value==="__new"?'<div class="field"><label>Nome da nova área</label><input id="newAreaName" placeholder="Ex.: Internamento"></div>':"";fillThemes()};
+  area.onchange=()=>{
+    document.querySelector("#newAreaBox").innerHTML=area.value==="__new"?'<div class="field"><label>Nome da nova área</label><input id="newAreaName" placeholder="Ex.: Internamento"></div>':"";
+    if(area.value==="__new"){
+      theme.disabled=false;theme.innerHTML='<option value="">Sem tema</option><option value="__new">＋ Novo tema…</option>';
+      document.querySelector("#newThemeBox").innerHTML="";
+    }else fillThemes()
+  };
   theme.onchange=()=>{document.querySelector("#newThemeBox").innerHTML=theme.value==="__new"?'<div class="field"><label>Nome do novo tema</label><input id="newThemeName" placeholder="Ex.: Fluidoterapia"></div>':""};
   setTimeout(()=>document.querySelector("#txt")?.focus(),50);document.querySelector("#save").onclick=()=>saveEntry(t)
 }
