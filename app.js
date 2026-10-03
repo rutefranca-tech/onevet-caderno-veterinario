@@ -46,7 +46,7 @@ async function editor(t){
       document.querySelector("#newAreaName")?.focus();
     }else fillThemes()
   };
-  theme.onchange=()=>{document.querySelector("#newThemeBox").innerHTML=theme.value==="__new"?'<div class="field"><label>Nome do novo tema</label><input id="newThemeName" placeholder="Ex.: Fluidoterapia"></div>':"";if(theme.value==="__new")document.querySelector("#newThemeName")?.focus()};
+  theme.onchange=()=>{document.querySelector("#newThemeBox").innerHTML=theme.value==="__new"?'<div class="field"><label>Nome do novo tema</label><input id="newThemeName" placeholder="Ex.: Fluidoterapia"></div>':"";if(theme.value==="__new"){const focusTheme=()=>document.querySelector("#newThemeName")?.focus();focusTheme();setTimeout(focusTheme,80)}};
   setTimeout(()=>document.querySelector("#txt")?.focus(),50);document.querySelector("#save").onclick=()=>saveEntry(t)
 }
 async function saveEntry(t){
