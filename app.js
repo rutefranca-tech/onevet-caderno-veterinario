@@ -2,12 +2,21 @@ const app=document.querySelector("#app"),sheet=document.querySelector("#sheet");
 const SUPABASE_URL="https://cytpwgcwviasbezkfqmx.supabase.co";
 const SUPABASE_KEY="sb_publishable_yABGA2cQpE1c3kmCjq_7RQ_djbttJFk";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
-let session=null,entries=[];
+let session=null,entries=[],areas=[],themes=[];
 const nav=[...document.querySelectorAll("nav button")];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=d=>new Intl.DateTimeFormat("pt-PT",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).format(new Date(d));
 const titleOf=s=>s.length>42?s.slice(0,42)+"…":s;
 function rowToEntry(r){const q=r.type==="question";return{id:r.id,type:r.type,icon:q?"❓":"📝",title:titleOf(r.text||""),meta:(r.area?.name?r.area.name+" · ":"")+fmt(r.created_at)+(q?" · "+(r.status==="answered"?"Respondida":"Pendente"):""),text:r.text||"",favorite:!!r.favorite,status:r.status,answer:r.answer,answeredBy:r.answered_by_person?.name||"",created_at:r.created_at,updated_at:r.updated_at}}
+async function loadTaxonomy(){
+  if(!session)return;
+  const [a,t]=await Promise.all([
+    db.from("areas").select("id,name").eq("active",true).order("name"),
+    db.from("themes").select("id,name,area_id").eq("active",true).order("name")
+  ]);
+  if(a.error)throw a.error;if(t.error)throw t.error;
+  areas=a.data||[];themes=t.data||[];
+}
 async function loadEntries(){if(!session)return;const{data,error}=await db.from("entries").select("*").is("deleted_at",null).order("created_at",{ascending:false});if(error){console.error(error);return}entries=(data||[]).map(rowToEntry)}
 function loginScreen(msg=""){document.querySelector("header").style.display="none";document.querySelector("nav").style.display="none";app.innerHTML='<div style="padding-top:18vh"><h1>🐾 Caderno Veterinário</h1><div class="muted">Entra no teu caderno pessoal.</div><div class="card"><div class="field"><label>Email</label><input id="loginEmail" type="email" autocomplete="email"></div><div class="field"><label>Palavra-passe</label><input id="loginPassword" type="password" autocomplete="current-password"></div><button class="btn" id="loginBtn">Entrar</button><div id="loginMsg" class="muted small center-note">'+esc(msg)+'</div></div></div>';document.querySelector("#loginBtn").onclick=login}
 async function login(){const b=document.querySelector("#loginBtn"),m=document.querySelector("#loginMsg");b.disabled=true;m.textContent="A entrar…";const{data,error}=await db.auth.signInWithPassword({email:document.querySelector("#loginEmail").value.trim(),password:document.querySelector("#loginPassword").value});if(error){m.textContent="Não foi possível entrar. Confirma o email e a palavra-passe.";b.disabled=false;return}session=data.session;document.querySelector("header").style.display="";document.querySelector("nav").style.display="";await loadEntries();render()}
@@ -21,8 +30,38 @@ else app.innerHTML='<h1>Procurar</h1><div class="muted">Pesquisa global no teu c
 const n=document.querySelector("#newEntry");if(n)n.onclick=openType;bindEntries();const si=document.querySelector("#searchInput");if(si)si.oninput=()=>{const q=si.value.trim().toLowerCase(),box=document.querySelector("#searchResults");if(!q){box.innerHTML="";return}const found=entries.filter(e=>(e.title+" "+e.meta+" "+e.text).toLowerCase().includes(q));box.innerHTML=found.length?found.map(e=>'<button class="recent-item recent-button" data-entry="'+e.id+'"><div class="item-icon">'+e.icon+'</div><div class="item-main"><div class="item-title">'+esc(e.title)+'</div><div class="item-meta">'+esc(e.meta)+'</div></div><div class="chev">›</div></button>').join(""):'<div class="muted small search-empty">Sem resultados.</div>';bindEntries()}}
 nav.forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});function close(){sheet.classList.add("hidden");sheet.innerHTML=""}
 function openType(){sheet.classList.remove("hidden");sheet.innerHTML='<div class="sheet-panel"><div class="sheet-handle"></div><div class="row"><div class="sheet-title">Novo registo</div><button class="close" id="x">×</button></div><div class="type-grid"><button class="type-btn" data-t="Nota"><b>📝</b>Nota</button><button class="type-btn" data-t="Dúvida"><b>❓</b>Dúvida</button></div></div>';document.querySelector("#x").onclick=close;document.querySelectorAll(".type-btn").forEach(b=>b.onclick=()=>editor(b.dataset.t))}
-function editor(t){const label=t==="Dúvida"?"Qual é a tua dúvida?":"O que aprendeste?";sheet.innerHTML='<div class="sheet-panel"><div class="sheet-handle"></div><div class="row"><div class="sheet-title">Nova '+t.toLowerCase()+'</div><button class="close" id="x">×</button></div><div class="field"><label>'+label+'</label><textarea id="txt" placeholder="Escreve aqui…" autofocus></textarea></div><button class="btn" id="save">Guardar</button><div id="saveMsg" class="muted small center-note">Data e hora são registadas automaticamente.</div></div>';document.querySelector("#x").onclick=close;setTimeout(()=>document.querySelector("#txt")?.focus(),50);document.querySelector("#save").onclick=()=>saveEntry(t)}
-async function saveEntry(t){const txt=document.querySelector("#txt"),b=document.querySelector("#save"),m=document.querySelector("#saveMsg"),v=txt.value.trim();if(!v)return;m.textContent="A guardar…";b.disabled=true;const payload={user_id:session.user.id,type:t==="Dúvida"?"question":"note",text:v};const{data,error}=await db.from("entries").insert(payload).select("id").single();if(error){console.error(error);m.textContent="Erro Supabase: "+(error.message||"erro desconhecido")+(error.code?" ["+error.code+"]":"");b.disabled=false;return}const{id,error:readError}=await db.from("entries").select("id").eq("id",data.id).single();if(readError){m.textContent="Foi guardado, mas não consegui confirmar a leitura. Tenta atualizar.";b.disabled=false;return}await loadEntries();m.textContent="Guardado e confirmado.";setTimeout(()=>{close();view="notebook";render()},350)}
+async function editor(t){
+  const label=t==="Dúvida"?"Qual é a tua dúvida?":"O que aprendeste?";
+  try{await loadTaxonomy()}catch(e){console.error(e)}
+  const areaOpts=areas.map(a=>'<option value="'+a.id+'">'+esc(a.name)+'</option>').join("");
+  sheet.innerHTML='<div class="sheet-panel"><div class="sheet-handle"></div><div class="row"><div class="sheet-title">Nova '+t.toLowerCase()+'</div><button class="close" id="x">×</button></div><div class="field"><label>'+label+'</label><textarea id="txt" placeholder="Escreve aqui…" autofocus></textarea></div><details class="details"><summary>Adicionar detalhes</summary><div class="field"><label>Área</label><select id="area"><option value="">Sem área</option>'+areaOpts+'<option value="__new">＋ Nova área…</option></select></div><div id="newAreaBox"></div><div class="field"><label>Tema</label><select id="theme" disabled><option value="">Sem tema</option></select></div><div id="newThemeBox"></div></details><button class="btn" id="save">Guardar</button><div id="saveMsg" class="muted small center-note">Data e hora são registadas automaticamente.</div></div>';
+  document.querySelector("#x").onclick=close;
+  const area=document.querySelector("#area"),theme=document.querySelector("#theme");
+  function fillThemes(){const aid=area.value;theme.innerHTML='<option value="">Sem tema</option>'+themes.filter(x=>x.area_id===aid).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join("")+(aid&&aid!=="__new"?'<option value="__new">＋ Novo tema…</option>':"");theme.disabled=!aid||aid==="__new";document.querySelector("#newThemeBox").innerHTML=""}
+  area.onchange=()=>{document.querySelector("#newAreaBox").innerHTML=area.value==="__new"?'<div class="field"><label>Nome da nova área</label><input id="newAreaName" placeholder="Ex.: Internamento"></div>':"";fillThemes()};
+  theme.onchange=()=>{document.querySelector("#newThemeBox").innerHTML=theme.value==="__new"?'<div class="field"><label>Nome do novo tema</label><input id="newThemeName" placeholder="Ex.: Fluidoterapia"></div>':""};
+  setTimeout(()=>document.querySelector("#txt")?.focus(),50);document.querySelector("#save").onclick=()=>saveEntry(t)
+}
+async function saveEntry(t){
+  const txt=document.querySelector("#txt"),b=document.querySelector("#save"),m=document.querySelector("#saveMsg"),v=txt.value.trim();if(!v)return;
+  m.textContent="A guardar…";b.disabled=true;
+  try{
+    let areaId=document.querySelector("#area")?.value||null,themeId=document.querySelector("#theme")?.value||null;
+    if(areaId==="__new"){
+      const name=document.querySelector("#newAreaName")?.value.trim();if(!name)throw new Error("Escreve o nome da nova área.");
+      const r=await db.from("areas").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;areaId=r.data.id;themeId=null;
+    }
+    if(themeId==="__new"){
+      const name=document.querySelector("#newThemeName")?.value.trim();if(!name)throw new Error("Escreve o nome do novo tema.");
+      const r=await db.from("themes").insert({user_id:session.user.id,area_id:areaId,name}).select("id").single();if(r.error)throw r.error;themeId=r.data.id;
+    }
+    const payload={user_id:session.user.id,type:t==="Dúvida"?"question":"note",text:v,area_id:areaId||null,theme_id:themeId||null};
+    if(t==="Dúvida")payload.question_status="pending";
+    const{data,error}=await db.from("entries").insert(payload).select("id").single();if(error)throw error;
+    const confirm=await db.from("entries").select("id").eq("id",data.id).single();if(confirm.error)throw confirm.error;
+    await loadEntries();m.textContent="Guardado e confirmado.";setTimeout(()=>{close();view="notebook";render()},350)
+  }catch(error){console.error(error);m.textContent="Erro: "+(error.message||"não foi possível guardar")+(error.code?" ["+error.code+"]":"");b.disabled=false}
+}
 function openEntry(id){const e=entries.find(x=>String(x.id)===String(id));if(!e)return;sheet.classList.remove("hidden");const q=e.type==="question";sheet.innerHTML='<div class="sheet-panel"><div class="sheet-handle"></div><div class="row"><div><div class="entry-kind">'+(q?"Dúvida":"Nota")+'</div><div class="sheet-title entry-title">'+esc(e.title)+'</div></div><button class="close" id="x">×</button></div><div class="card entry-card"><div class="entry-text">'+esc(e.text)+'</div><div class="item-meta entry-meta">'+esc(e.meta)+'</div></div></div>';document.querySelector("#x").onclick=close}
 sheet.onclick=e=>{if(e.target===sheet)close()};document.querySelector("#menuBtn").onclick=()=>{sheet.classList.remove("hidden");sheet.innerHTML='<div class="sheet-panel"><div class="sheet-handle"></div><div class="row"><div class="sheet-title">Caderno Veterinário</div><button class="close" id="x">×</button></div><div class="card"><button class="btn secondary" id="logout">Terminar sessão</button></div><div class="muted small">V1 · dados reais no Supabase</div></div>';document.querySelector("#x").onclick=close;document.querySelector("#logout").onclick=async()=>{await db.auth.signOut();session=null;close();loginScreen()}};
 (async()=>{const{data}=await db.auth.getSession();session=data.session;if(!session){loginScreen();return}document.querySelector("header").style.display="";document.querySelector("nav").style.display="";await loadEntries();render()})();
