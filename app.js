@@ -56,7 +56,9 @@ async function saveEntry(t){
     let areaId=document.querySelector("#area")?.value||null,themeId=document.querySelector("#theme")?.value||null;
     if(areaId==="__new"){
       const name=document.querySelector("#newAreaName")?.value.trim();if(!name)throw new Error("Escreve o nome da nova área.");
-      const r=await db.from("areas").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;areaId=r.data.id;themeId=null;
+      const wantsNewTheme=themeId==="__new";
+      const r=await db.from("areas").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;areaId=r.data.id;
+      if(!wantsNewTheme)themeId=null;
     }
     if(themeId==="__new"){
       const name=document.querySelector("#newThemeName")?.value.trim();if(!name)throw new Error("Escreve o nome do novo tema.");
