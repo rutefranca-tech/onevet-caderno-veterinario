@@ -41,8 +41,9 @@ async function editor(t){
   area.onchange=()=>{
     document.querySelector("#newAreaBox").innerHTML=area.value==="__new"?'<div class="field"><label>Nome da nova área</label><input id="newAreaName" placeholder="Ex.: Internamento"></div>':"";
     if(area.value==="__new"){
-      theme.disabled=false;theme.innerHTML='<option value="">Sem tema</option><option value="__new">＋ Novo tema…</option>';
+      theme.disabled=false;theme.removeAttribute("disabled");theme.innerHTML='<option value="">Sem tema</option><option value="__new">＋ Novo tema…</option>';
       document.querySelector("#newThemeBox").innerHTML="";
+      requestAnimationFrame(()=>document.querySelector("#newAreaName")?.focus());
     }else fillThemes()
   };
   theme.onchange=()=>{document.querySelector("#newThemeBox").innerHTML=theme.value==="__new"?'<div class="field"><label>Nome do novo tema</label><input id="newThemeName" placeholder="Ex.: Fluidoterapia"></div>':""};
