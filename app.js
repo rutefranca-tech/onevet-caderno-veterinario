@@ -74,7 +74,28 @@ async function saveEntry(t){
     await loadEntries();m.textContent="Guardado e confirmado.";setTimeout(()=>{close();view="notebook";render()},350)
   }catch(error){console.error(error);m.textContent="Erro: "+(error.message||"não foi possível guardar")+(error.code?" ["+error.code+"]":"");b.disabled=false}
 }
-function openEntry(id){const e=entries.find(x=>String(x.id)===String(id));if(!e)return;sheet.classList.remove("hidden");const q=e.type==="question";sheet.innerHTML='<div class="sheet-panel"><div class="sheet-handle"></div><div class="row"><div><div class="entry-kind">'+(q?"Dúvida":"Nota")+'</div><div class="sheet-title entry-title">'+esc(e.title)+'</div></div><button class="close" id="x">×</button></div><div class="card entry-card"><div class="entry-text">'+esc(e.text)+'</div>'+(e.area||e.theme||e.person?'<div class="entry-meta"><div class="summary">'+(e.area?'<span class="pill">Área · '+esc(e.area)+'</span>':'')+(e.theme?'<span class="pill">Tema · '+esc(e.theme)+'</span>':'')+(e.person?'<span class="pill">Pessoa · '+esc(e.person)+'</span>':'')+'</div></div>':'')+'<div class="item-meta entry-meta">'+esc(e.meta)+'</div></div><button class="btn secondary" id="editEntry">Editar</button></div>';document.querySelector("#x").onclick=close;document.querySelector("#editEntry").onclick=()=>editEntry(e)}
+function openEntry(id){const e=entries.find(x=>String(x.id)===String(id));if(!e)return;sheet.classList.remove("hidden");const q=e.type==="question";sheet.innerHTML='<div class="sheet-panel"><div class="sheet-handle"></div><div class="row"><div><div class="entry-kind">'+(q?"Dúvida":"Nota")+'</div><div class="sheet-title entry-title">'+esc(e.title)+'</div></div><button class="close" id="x">×</button></div><div class="card entry-card"><div class="entry-text">'+esc(e.text)+'</div>'+(e.area||e.theme||e.person?'<div class="entry-meta"><div class="summary">'+(e.area?'<span class="pill">Área · '+esc(e.area)+'</span>':'')+(e.theme?'<span class="pill">Tema · '+esc(e.theme)+'</span>':'')+(e.person?'<span class="pill">Pessoa · '+esc(e.person)+'</span>':'')+'</div></div>':'')+'<div class="item-meta entry-meta">'+esc(e.meta)+'</div></div>'+(q&&e.status!=="answered"?'<button class="btn" id="answerEntry">Responder</button>':'')+'<button class="btn secondary" id="editEntry">Editar</button></div>';document.querySelector("#x").onclick=close;document.querySelector("#editEntry").onclick=()=>editEntry(e);if(q&&e.status!=="answered")document.querySelector("#answerEntry").onclick=()=>answerEntry(e)}
+
+async function answerEntry(e){
+  try{await loadTaxonomy()}catch(err){console.error(err)}
+  const peopleOpts=people.map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join("");
+  sheet.innerHTML='<div class="sheet-panel"><div class="sheet-handle"></div><div class="row"><div class="sheet-title">Responder à dúvida</div><button class="close" id="x">×</button></div><div class="card entry-card"><div class="entry-text">'+esc(e.text)+'</div></div><div class="field"><label>Resposta</label><textarea id="answerTxt" placeholder="Escreve aqui a resposta…"></textarea></div><div class="field"><label>Quem respondeu?</label><select id="answerPerson"><option value="">Não indicar</option>'+peopleOpts+'<option value="__new">＋ Nova pessoa…</option></select></div><div id="answerNewPersonBox"></div><button class="btn" id="saveAnswer">Guardar resposta</button><div id="answerMsg" class="muted small center-note"></div></div>';
+  document.querySelector("#x").onclick=()=>openEntry(e.id);
+  const pe=document.querySelector("#answerPerson");
+  pe.onchange=()=>{document.querySelector("#answerNewPersonBox").innerHTML=pe.value==="__new"?'<div class="field"><label>Nome da nova pessoa</label><input id="answerNewPersonName" placeholder="Ex.: Sandra"></div>':"";if(pe.value==="__new"){const f=()=>document.querySelector("#answerNewPersonName")?.focus();f();setTimeout(f,80)}};
+  setTimeout(()=>document.querySelector("#answerTxt")?.focus(),50);
+  document.querySelector("#saveAnswer").onclick=async()=>{
+    const btn=document.querySelector("#saveAnswer"),m=document.querySelector("#answerMsg"),answer=document.querySelector("#answerTxt").value.trim();if(!answer)return;
+    m.textContent="A guardar…";btn.disabled=true;
+    try{
+      let person=pe.value||null;
+      if(person==="__new"){const name=document.querySelector("#answerNewPersonName")?.value.trim();if(!name)throw new Error("Escreve o nome de quem respondeu.");const r=await db.from("people").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;person=r.data.id}
+      const payload={answer,answered_by_id:person,answered_at:new Date().toISOString(),question_status:"answered"};
+      const{error}=await db.from("entries").update(payload).eq("id",e.id);if(error)throw error;
+      await loadEntries();openEntry(e.id)
+    }catch(err){m.textContent="Erro: "+(err.message||"não foi possível guardar");btn.disabled=false}
+  }
+}
 
 async function editEntry(e){
   try{await loadTaxonomy()}catch(err){console.error(err)}
