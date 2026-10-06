@@ -27,3 +27,5 @@
 .procedure-head-actions{display:flex;align-items:center;gap:7px}.favorite-btn{border:0;background:#eef1f1;width:36px;height:36px;border-radius:50%;font-size:22px;line-height:1;color:#83908c;cursor:pointer}.favorite-btn.active{color:#e2a900;background:#fff5cf}.procedure-fav-star{color:#e2a900}
 
 .procedure-link-pill{border:0!important;box-shadow:none!important;cursor:pointer;font-family:inherit!important;font-size:13px!important;font-weight:700!important;line-height:normal!important;color:#1f2933!important;appearance:none;-webkit-appearance:none}
+
+.danger-zone{margin-top:28px;padding-top:18px;border-top:1px solid #e1e5e5}.delete-entry-btn{background:#fff!important;color:#b42318!important;border:1px solid #f1b8b3!important;box-shadow:none!important}.delete-entry-btn:active{background:#fff3f2!important}
