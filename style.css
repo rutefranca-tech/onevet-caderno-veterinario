@@ -23,3 +23,5 @@
 .learning-edit-first{margin-top:12px}.top-save{margin-top:2px}.edit-divider{height:1px;background:#e5e9e8;margin:20px 0}
 
 .procedure-top-edit{margin-top:14px}
+
+.procedure-head-actions{display:flex;align-items:center;gap:7px}.favorite-btn{border:0;background:#eef1f1;width:36px;height:36px;border-radius:50%;font-size:22px;line-height:1;color:#83908c;cursor:pointer}.favorite-btn.active{color:#e2a900;background:#fff5cf}.procedure-fav-star{color:#e2a900}
