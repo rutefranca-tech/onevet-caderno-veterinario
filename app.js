@@ -176,7 +176,7 @@ async function answerEntry(e){
       if(person==="__new"){const name=document.querySelector("#answerNewPersonName")?.value.trim();if(!name)throw new Error("Escreve o nome de quem respondeu.");const existing=await existingPerson(name);if(existing){await reactivateTaxonomy("people",existing);person=existing.id}else{const r=await db.from("people").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;person=r.data.id}}
       const payload={answer,answered_by_id:person,answered_at:new Date().toISOString(),question_status:"answered"};
       const{error}=await db.from("entries").update(payload).eq("id",e.id);if(error)throw error;
-      await loadEntries();if(createProcedure){const saved=entries.find(x=>x.id===e.id);if(saved){openProcedureDraft(saved);return}}openEntry(e.id)
+      await loadTaxonomy();await loadEntries();openEntry(e.id)
     }catch(err){m.textContent="Erro: "+(err.message||"não foi possível guardar");btn.disabled=false}
   }
 }
