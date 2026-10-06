@@ -16,7 +16,7 @@ async function loadTaxonomy(){
     db.from("people").select("id,name").eq("active",true).order("name")
   ]);
   if(a.error)throw a.error;if(t.error)throw t.error;if(p.error)throw p.error;
-  areas=a.data||[];themes=t.data||[];people=p.data||[];
+  const uniqueByName=list=>{const seen=new Set();return (list||[]).filter(x=>{const key=(x.name||"").trim().toLocaleLowerCase("pt-PT");if(!key||seen.has(key))return false;seen.add(key);return true})};areas=uniqueByName(a.data);themes=uniqueByName(t.data);people=uniqueByName(p.data);
 }
 async function loadProcedures(){if(!session)return;const{data,error}=await db.from("procedures").select("*,area:areas(name),theme:themes(name),learning_history(level,created_at)").eq("active",true).order("created_at",{ascending:false});if(error){console.error(error);return}procedures=(data||[]).map(p=>{const history=(p.learning_history||[]).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));return{...p,history,level:history[history.length-1]?.level||""}})}
 async function loadEntries(){if(!session)return;const{data,error}=await db.from("entries").select("*").is("deleted_at",null).order("created_at",{ascending:false});if(error){console.error("loadEntries",error);entries=[];return}entries=(data||[]).map(r=>{const area=areas.find(x=>x.id===r.area_id),theme=themes.find(x=>x.id===r.theme_id),person=people.find(x=>x.id===r.person_id),answerPerson=people.find(x=>x.id===r.answered_by_id);return rowToEntry({...r,area:area?{name:area.name}:null,theme:theme?{name:theme.name}:null,person:person?{name:person.name}:null,answer_person:answerPerson?{name:answerPerson.name}:null})})}
