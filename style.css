@@ -26,4 +26,4 @@
 
 .procedure-head-actions{display:flex;align-items:center;gap:7px}.favorite-btn{border:0;background:#eef1f1;width:36px;height:36px;border-radius:50%;font-size:22px;line-height:1;color:#83908c;cursor:pointer}.favorite-btn.active{color:#e2a900;background:#fff5cf}.procedure-fav-star{color:#e2a900}
 
-.procedure-link-pill{border:0!important;box-shadow:none!important;cursor:pointer;font-family:inherit!important;font-size:inherit!important;font-weight:inherit!important;line-height:inherit!important;color:inherit!important}
+.procedure-link-pill{border:0!important;box-shadow:none!important;cursor:pointer;font-family:inherit!important;font-size:13px!important;font-weight:700!important;line-height:normal!important;color:#1f2933!important;appearance:none;-webkit-appearance:none}
