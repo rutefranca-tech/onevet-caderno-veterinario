@@ -10,3 +10,5 @@
 .nested-field{margin-left:12px;padding-left:10px;border-left:2px solid #e3e8e7}.nested-field label{font-size:12px;color:#89939e;font-weight:600}
 
 .field.hidden,.nested-field.hidden{display:none}
+
+.procedure-summary{margin-top:16px}.procedure-section{background:#fff;border-radius:18px;padding:16px;margin-top:12px}.procedure-section .eyebrow{margin:0 0 7px}.procedure-text{line-height:1.45;white-space:normal}.procedure-section+.secondary-btn{margin-top:16px}
