@@ -8,3 +8,5 @@
 .empty-procedures{display:flex;gap:12px;align-items:flex-start;padding:4px 0}
 
 .nested-field{margin-left:12px;padding-left:10px;border-left:2px solid #e3e8e7}.nested-field label{font-size:12px;color:#89939e;font-weight:600}
+
+.field.hidden,.nested-field.hidden{display:none}
