@@ -4,3 +4,5 @@
 .notebook-tabs{margin:14px 0 4px}.notebook-tab{border:0;box-shadow:none;outline:0;border-radius:18px;padding:6px 10px;background:#c9f0e5;color:#17212b;font:inherit;font-size:13px;font-weight:700;-webkit-appearance:none;appearance:none}.notebook-tab.active{background:#c9f0e5;color:#17212b}
 
 .home-search{margin-top:12px}.home-stat{border:0;box-shadow:none;outline:0;appearance:none;-webkit-appearance:none;color:#17212b}.continue-button{width:100%;border:0;background:transparent;text-align:left;font:inherit;color:inherit}
+
+.empty-procedures{display:flex;gap:12px;align-items:flex-start;padding:4px 0}
