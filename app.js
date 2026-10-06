@@ -139,7 +139,10 @@ async function saveEntry(t){
     const createProcedure=procedureId==="__new";const payload={user_id:session.user.id,type:t==="Dúvida"?"question":"note",text:v,area_id:areaId||null,theme_id:themeId||null,person_id:personId||null,procedure_id:createProcedure?null:(procedureId||null)};
     if(t==="Dúvida")payload.question_status="pending";
     const{data,error}=await db.from("entries").insert(payload).select("id").single();if(error)throw error;
-    const confirm=await db.from("entries").select("id").eq("id",data.id).single();if(confirm.error)throw confirm.error;
+    const confirm=await db.from("entries").select("id,area_id,theme_id,person_id,procedure_id").eq("id",data.id).single();if(confirm.error)throw confirm.error;
+    const expected={area_id:areaId||null,theme_id:themeId||null,person_id:personId||null,procedure_id:createProcedure?null:(procedureId||null)};
+    const mismatch=["area_id","theme_id","person_id","procedure_id"].some(k=>(confirm.data?.[k]||null)!==(expected[k]||null));
+    if(mismatch){const{error:repairError}=await db.from("entries").update(expected).eq("id",data.id);if(repairError)throw repairError}
     await loadTaxonomy();await loadEntries();m.textContent="Guardado e confirmado.";if(createProcedure){const saved=entries.find(e=>e.id===data.id);if(saved){openProcedureDraft(saved);return}}setTimeout(()=>{close();view="notebook";render()},350)
   }catch(error){console.error(error);m.textContent="Erro: "+(error.message||"não foi possível guardar")+(error.code?" ["+error.code+"]":"");b.disabled=false}
 }
