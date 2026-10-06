@@ -51,8 +51,8 @@ function openProcedureDraft(sourceEntry=null){
   if(sourceEntry){const sourceArea=areas.find(a=>a.name===sourceEntry.area),sourceTheme=themes.find(t=>t.name===sourceEntry.theme);if(sourceArea){areaSel.value=sourceArea.id;refreshThemes()}if(sourceTheme&&(!sourceArea||sourceTheme.area_id===sourceArea.id))themeSel.value=sourceTheme.id;document.querySelector("#procedureTitle").value=sourceEntry.title||"";document.querySelector("#procedureMsg").textContent="Criado a partir do Caderno. A nota/dúvida será ligada automaticamente ao novo procedimento."}
   document.querySelector("#procedureSave").onclick=async()=>{const title=document.querySelector("#procedureTitle").value.trim(),level=document.querySelector("#procedureLevel").value,btn=document.querySelector("#procedureSave"),msg=document.querySelector("#procedureMsg");if(!title){document.querySelector("#procedureTitle").focus();return}btn.disabled=true;btn.textContent="A guardar…";msg.textContent="";
     let area_id=areaSel.value||null,theme_id=themeSel.value||null;
-    if(area_id==="__new__"){const name=areaInput.value.trim();if(!name){area_id=null}else{const{data,error}=await db.from("areas").insert({user_id:session.user.id,name,active:true}).select("id").single();if(error){msg.textContent="Erro ao criar área: "+error.message;btn.disabled=false;btn.textContent="Guardar procedimento";return}area_id=data.id}}
-    if(theme_id==="__new__"){const name=themeInput.value.trim();if(!name){theme_id=null}else{const{data,error}=await db.from("themes").insert({user_id:session.user.id,area_id,name,active:true}).select("id").single();if(error){msg.textContent="Erro ao criar tema: "+error.message;btn.disabled=false;btn.textContent="Guardar procedimento";return}theme_id=data.id}}
+    if(area_id==="__new__"){const name=areaInput.value.trim();if(!name){area_id=null}else{const existing=existingArea(name);if(existing){area_id=existing.id}else{const{data,error}=await db.from("areas").insert({user_id:session.user.id,name,active:true}).select("id").single();if(error){msg.textContent="Erro ao criar área: "+error.message;btn.disabled=false;btn.textContent="Guardar procedimento";return}area_id=data.id}}}
+    if(theme_id==="__new__"){const name=themeInput.value.trim();if(!name){theme_id=null}else{const existing=existingTheme(name,area_id);if(existing){theme_id=existing.id}else{const{data,error}=await db.from("themes").insert({user_id:session.user.id,area_id,name,active:true}).select("id").single();if(error){msg.textContent="Erro ao criar tema: "+error.message;btn.disabled=false;btn.textContent="Guardar procedimento";return}theme_id=data.id}}}
     const{data:p,error:e}=await db.from("procedures").insert({user_id:session.user.id,title,area_id,theme_id,favorite:false,active:true}).select("id").single();if(e){msg.textContent="Erro: "+e.message;btn.disabled=false;btn.textContent="Guardar procedimento";return}
     const{error:le}=await db.from("learning_history").insert({user_id:session.user.id,procedure_id:p.id,level});if(le){msg.textContent="Procedimento criado, mas houve erro ao guardar o nível: "+le.message;btn.disabled=false;btn.textContent="Guardar procedimento";return}
     if(sourceEntry){const{error:linkError}=await db.from("entries").update({procedure_id:p.id}).eq("id",sourceEntry.id);if(linkError){msg.textContent="Procedimento criado, mas não foi possível ligar o registo: "+linkError.message;btn.disabled=false;btn.textContent="Guardar procedimento";return}}
@@ -115,6 +115,10 @@ async function editor(t){
   theme.onchange=()=>{document.querySelector("#newThemeBox").innerHTML=theme.value==="__new"?'<div class="field"><label>Nome do novo tema</label><input id="newThemeName" placeholder="Ex.: Fluidoterapia"></div>':"";if(theme.value==="__new"){const focusTheme=()=>document.querySelector("#newThemeName")?.focus();focusTheme();setTimeout(focusTheme,80)}};
   const person=document.querySelector("#person");person.onchange=()=>{document.querySelector("#newPersonBox").innerHTML=person.value==="__new"?'<div class="field"><label>Nome da nova pessoa</label><input id="newPersonName" placeholder="Ex.: Sandra"></div>':"";if(person.value==="__new"){const focusPerson=()=>document.querySelector("#newPersonName")?.focus();focusPerson();setTimeout(focusPerson,80)}};setTimeout(()=>document.querySelector("#txt")?.focus(),50);document.querySelector("#save").onclick=()=>saveEntry(t)
 }
+function taxKey(v){return (v||"").trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("pt-PT")}
+function existingArea(name){return areas.find(x=>taxKey(x.name)===taxKey(name))}
+function existingTheme(name,areaId){return themes.find(x=>x.area_id===areaId&&taxKey(x.name)===taxKey(name))}
+function existingPerson(name){return people.find(x=>taxKey(x.name)===taxKey(name))}
 async function saveEntry(t){
   const txt=document.querySelector("#txt"),b=document.querySelector("#save"),m=document.querySelector("#saveMsg"),v=txt.value.trim();if(!v)return;
   m.textContent="A guardar…";b.disabled=true;
@@ -123,14 +127,14 @@ async function saveEntry(t){
     if(areaId==="__new"){
       const name=document.querySelector("#newAreaName")?.value.trim();if(!name)throw new Error("Escreve o nome da nova área.");
       const wantsNewTheme=themeId==="__new";
-      const r=await db.from("areas").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;areaId=r.data.id;
+      const existing=existingArea(name);if(existing){areaId=existing.id}else{const r=await db.from("areas").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;areaId=r.data.id;}
       if(!wantsNewTheme)themeId=null;
     }
     if(themeId==="__new"){
       const name=document.querySelector("#newThemeName")?.value.trim();if(!name)throw new Error("Escreve o nome do novo tema.");
-      const r=await db.from("themes").insert({user_id:session.user.id,area_id:areaId,name}).select("id").single();if(r.error)throw r.error;themeId=r.data.id;
+      const existing=existingTheme(name,areaId);if(existing){themeId=existing.id}else{const r=await db.from("themes").insert({user_id:session.user.id,area_id:areaId,name}).select("id").single();if(r.error)throw r.error;themeId=r.data.id;}
     }
-    if(personId==="__new"){const name=document.querySelector("#newPersonName")?.value.trim();if(!name)throw new Error("Escreve o nome da nova pessoa.");const r=await db.from("people").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;personId=r.data.id;}
+    if(personId==="__new"){const name=document.querySelector("#newPersonName")?.value.trim();if(!name)throw new Error("Escreve o nome da nova pessoa.");const existing=existingPerson(name);if(existing){personId=existing.id}else{const r=await db.from("people").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;personId=r.data.id;}}
     const createProcedure=procedureId==="__new";const payload={user_id:session.user.id,type:t==="Dúvida"?"question":"note",text:v,area_id:areaId||null,theme_id:themeId||null,person_id:personId||null,procedure_id:createProcedure?null:(procedureId||null)};
     if(t==="Dúvida")payload.question_status="pending";
     const{data,error}=await db.from("entries").insert(payload).select("id").single();if(error)throw error;
@@ -165,7 +169,7 @@ async function answerEntry(e){
     m.textContent="A guardar…";btn.disabled=true;
     try{
       let person=pe.value||null;
-      if(person==="__new"){const name=document.querySelector("#answerNewPersonName")?.value.trim();if(!name)throw new Error("Escreve o nome de quem respondeu.");const r=await db.from("people").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;person=r.data.id}
+      if(person==="__new"){const name=document.querySelector("#answerNewPersonName")?.value.trim();if(!name)throw new Error("Escreve o nome de quem respondeu.");const existing=existingPerson(name);if(existing){person=existing.id}else{const r=await db.from("people").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;person=r.data.id}}
       const payload={answer,answered_by_id:person,answered_at:new Date().toISOString(),question_status:"answered"};
       const{error}=await db.from("entries").update(payload).eq("id",e.id);if(error)throw error;
       await loadEntries();if(createProcedure){const saved=entries.find(x=>x.id===e.id);if(saved){openProcedureDraft(saved);return}}openEntry(e.id)
@@ -191,9 +195,9 @@ async function editEntry(e){
     const btn=document.querySelector("#saveEdit"),m=document.querySelector("#editMsg"),text=document.querySelector("#editTxt").value.trim();if(!text)return;m.textContent="A guardar…";btn.disabled=true;
     try{
       let area=ar.value||null,theme=th.value||null,person=pe.value||null,procedure=document.querySelector("#editProcedureLink").value||null;const createProcedure=procedure==="__new";if(createProcedure)procedure=null;
-      if(area==="__new"){const name=document.querySelector("#editNewAreaName")?.value.trim();if(!name)throw new Error("Escreve o nome da nova área.");const wants=theme==="__new";const r=await db.from("areas").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;area=r.data.id;if(!wants)theme=null}
-      if(theme==="__new"){const name=document.querySelector("#editNewThemeName")?.value.trim();if(!name)throw new Error("Escreve o nome do novo tema.");const r=await db.from("themes").insert({user_id:session.user.id,area_id:area,name}).select("id").single();if(r.error)throw r.error;theme=r.data.id}
-      if(person==="__new"){const name=document.querySelector("#editNewPersonName")?.value.trim();if(!name)throw new Error("Escreve o nome da nova pessoa.");const r=await db.from("people").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;person=r.data.id}
+      if(area==="__new"){const name=document.querySelector("#editNewAreaName")?.value.trim();if(!name)throw new Error("Escreve o nome da nova área.");const wants=theme==="__new";const existing=existingArea(name);if(existing){area=existing.id}else{const r=await db.from("areas").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;area=r.data.id}if(!wants)theme=null}
+      if(theme==="__new"){const name=document.querySelector("#editNewThemeName")?.value.trim();if(!name)throw new Error("Escreve o nome do novo tema.");const existing=existingTheme(name,area);if(existing){theme=existing.id}else{const r=await db.from("themes").insert({user_id:session.user.id,area_id:area,name}).select("id").single();if(r.error)throw r.error;theme=r.data.id}}
+      if(person==="__new"){const name=document.querySelector("#editNewPersonName")?.value.trim();if(!name)throw new Error("Escreve o nome da nova pessoa.");const existing=existingPerson(name);if(existing){person=existing.id}else{const r=await db.from("people").insert({user_id:session.user.id,name}).select("id").single();if(r.error)throw r.error;person=r.data.id}}
       const{error}=await db.from("entries").update({text,area_id:area,theme_id:theme,person_id:person,procedure_id:procedure}).eq("id",e.id);if(error)throw error;
       await loadEntries();openEntry(e.id)
     }catch(err){m.textContent="Erro: "+(err.message||"não foi possível guardar");btn.disabled=false}
