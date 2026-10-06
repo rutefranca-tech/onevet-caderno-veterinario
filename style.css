@@ -12,3 +12,5 @@
 .field.hidden,.nested-field.hidden{display:none}
 
 .procedure-summary{margin-top:16px}.procedure-section{background:#fff;border-radius:18px;padding:16px;margin-top:12px}.procedure-section .eyebrow{margin:0 0 7px}.procedure-text{line-height:1.45;white-space:normal}.procedure-section+.secondary-btn{margin-top:16px}
+
+.notebook-tab.active{background:#079b7b;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.12)}
