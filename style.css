@@ -31,4 +31,4 @@
 .danger-zone{margin-top:28px;padding-top:18px;border-top:1px solid #e1e5e5}.delete-entry-btn{background:#fff!important;color:#b42318!important;border:1px solid #f1b8b3!important;box-shadow:none!important}.delete-entry-btn:active{background:#fff3f2!important}
 
 .attachment-picker{display:flex;align-items:center;justify-content:center;min-height:46px;border:1px dashed #9eb8b1;border-radius:12px;background:#f5fbf9;color:#07866c;font-weight:700;cursor:pointer;padding:10px}.attachment-picker input{display:none}
-\n.tag-chip{appearance:none;border:0;background:#c9f0e5;border-radius:18px;padding:6px 10px;font:inherit;font-weight:700;font-size:13px;color:#17212b;width:auto;justify-self:start;cursor:pointer}\n
+\n.tag-chip{appearance:none;border:0;background:#c9f0e5;border-radius:18px;padding:6px 10px;font:inherit;font-weight:700;font-size:13px;color:#17212b;width:auto;justify-self:start;cursor:pointer}\n\n.detail-section-divider{margin:20px 0 16px;border-top:1px solid #e1e5e5}\n
